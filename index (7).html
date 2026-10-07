@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ลงเวลา</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ฟอนต์ไทยแบบมีหัว (Looped) อ่านง่ายทุกวัย · ตัวใหญ่ · ปุ่มใหญ่ · สีน้อย */
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --ink: #1d1c1a; --muted: #77726a; --line: #ebe8e1;
+    --brand: #c2410c; --brand-soft: #fff1e8;
+    --ok: #15803d; --ok-soft: #e9f8ef; --warn: #92600a; --warn-soft: #fff6dc;
+    --bad: #b42318; --bad-soft: #fdecea; --night: #1f2a44;
+    --r: 22px; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans Thai Looped", "Noto Sans Thai Looped", "Sukhumvit Set", "Leelawadee UI", sans-serif;
+    font-size: 19px; line-height: 1.55; }
+  body { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { padding: 18px 20px 6px; max-width: 560px; margin: 0 auto; display: flex; align-items: flex-end; gap: 12px; }
+  header .who { flex: 1; min-width: 0; }
+  header .shop { color: var(--muted); font-size: 15px; font-weight: 500; }
+  header h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header .date { background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 15px; font-weight: 600; box-shadow: var(--shadow); white-space: nowrap; }
+  main { padding: 10px 16px 0; max-width: 560px; margin: 0 auto; }
+
+  .card { background: var(--card); border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .card h2 { margin: 0 0 10px; font-size: 19px; font-weight: 700; }
+  .muted { color: var(--muted); font-size: 16px; }
+  .center { text-align: center; }
+
+  /* การ์ดใหญ่ด้านบน: นาฬิกา + สถานะ */
+  .hero { text-align: center; padding: 22px 20px 20px; }
+  .clock { font-size: 64px; font-weight: 700; line-height: 1.05; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .status { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 6px 16px;
+    border-radius: 999px; background: #f1efea; font-size: 17px; font-weight: 600; }
+  .status::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #b9b4aa; }
+  .status.ok { background: var(--ok-soft); color: var(--ok); } .status.ok::before { background: var(--ok); }
+  .status.bad { background: var(--bad-soft); color: var(--bad); } .status.bad::before { background: var(--bad); }
+  .status.warn { background: var(--warn-soft); color: var(--warn); } .status.warn::before { background: #e0a100; }
+  .result { margin-top: 14px; font-size: 30px; font-weight: 700; }
+  .result small { display: block; font-size: 16px; font-weight: 500; color: var(--muted); }
+  .icon { font-size: 52px; line-height: 1.1; }
+
+  /* ปุ่ม */
+  button { font: inherit; border: 0; cursor: pointer; touch-action: manipulation; color: inherit; background: none; }
+  .btn { display: block; width: 100%; min-height: 88px; padding: 14px 18px; border-radius: var(--r);
+    background: var(--brand); color: #fff; font-size: 28px; font-weight: 700; line-height: 1.2;
+    box-shadow: 0 6px 18px rgba(194,65,12,.28); transition: transform .08s; }
+  .btn:active { transform: scale(.98); }
+  .btn small { display: block; font-size: 18px; font-weight: 500; opacity: .95; margin-top: 4px; }
+  .btn.green { background: var(--ok); box-shadow: 0 6px 18px rgba(21,128,61,.28); }
+  .btn.orange { background: #d97706; box-shadow: 0 6px 18px rgba(217,119,6,.28); }
+  .btn.confirm { background: var(--ink); box-shadow: 0 0 0 5px #ffd54a; }
+  .btn.quiet { background: #fff; color: var(--night); border: 2px solid #d9d5cc; box-shadow: none;
+    min-height: 64px; font-size: 20px; }
+  .btn.quiet.confirm { background: var(--night); color: #fff; border-color: var(--night); }
+  .btn.quiet small { font-size: 15px; color: var(--muted); }
+  .btn.quiet.confirm small { color: #dfe4ee; }
+  .btn[disabled] { opacity: .45; box-shadow: none; }
+  .hint { display: block; width: fit-content; margin: 12px auto 0; padding: 6px 16px; border-radius: 999px;
+    background: var(--ok-soft); color: var(--ok); font-size: 17px; font-weight: 600; }
+  .small-btn { min-height: 48px; padding: 8px 18px; border-radius: 14px; background: var(--brand); color: #fff; font-size: 17px; font-weight: 600; }
+  .small-btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--line); }
+  .small-btn.green { background: var(--ok); } .small-btn.red { background: #fff; color: var(--bad); border: 2px solid #f3c4bf; }
+  .gap { height: 18px; }
+
+  /* คนที่ยังอยู่ */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 6px 14px; border-radius: 999px; background: var(--brand-soft); color: #9a3412; font-weight: 600; font-size: 17px; }
+  .chip.grey { background: #f1efea; color: var(--muted); font-weight: 500; }
+  .note { border-radius: 16px; padding: 12px 16px; margin-top: 12px; font-size: 17px; }
+  .note.warn { background: var(--warn-soft); color: var(--warn); }
+  .note.ok { background: var(--ok-soft); color: var(--ok); }
+  .note.bad { background: var(--bad-soft); color: var(--bad); }
+
+  /* แถบเมนูล่าง */
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 4px;
+    background: rgba(255,255,255,.96); backdrop-filter: blur(8px); border-top: 1px solid var(--line);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); }
+  nav.tabs button { flex: 1; max-width: 140px; min-height: 64px; border-radius: 16px; font-size: 15px; font-weight: 600; color: var(--muted); }
+  nav.tabs button b { display: block; font-size: 24px; line-height: 1.2; }
+  nav.tabs button.on { background: var(--brand-soft); color: var(--brand); }
+
+  /* ตัวเลือก */
+  .seg { display: flex; gap: 8px; margin-bottom: 14px; }
+  .seg button { flex: 1; min-width: 0; min-height: 52px; border-radius: 14px; background: #fff; border: 2px solid var(--line); font-size: 17px; font-weight: 600; padding: 6px 2px; white-space: nowrap; }
+  .seg button.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand); }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal .dow { text-align: center; font-size: 14px; color: var(--muted); font-weight: 600; }
+  .cal button { min-height: 52px; border-radius: 12px; background: #faf9f6; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cal button[disabled] { background: transparent; color: #c9c5bd; text-decoration: line-through; }
+  .cal .mon { grid-column: 1 / -1; font-size: 15px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+
+  /* รายการ */
+  .list { display: flex; flex-direction: column; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: 0; }
+  .item .main { flex: 1; min-width: 0; }
+  .item .name { font-weight: 700; font-size: 18px; }
+  .item .sub { color: var(--muted); font-size: 15px; }
+  .item .amt { text-align: right; font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .item .amt small { display: block; font-weight: 500; font-size: 14px; color: var(--muted); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 8px; padding-top: 12px; border-top: 2px solid var(--line); font-weight: 700; font-size: 22px; }
+  .pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; background: #f1efea; color: var(--muted); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+  input, select { font: inherit; font-size: 19px; padding: 10px 12px; border: 2px solid var(--line); border-radius: 14px; background: #fff; color: var(--ink); min-height: 52px; max-width: 100%; }
+  input:focus, select:focus { outline: none; border-color: var(--brand); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  pre { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 17px; line-height: 1.7; margin: 0; }
+
+  #toast { position: fixed; left: 12px; right: 12px; bottom: calc(92px + env(safe-area-inset-bottom)); z-index: 9; max-width: 536px; margin: 0 auto;
+    display: none; padding: 16px 18px; border-radius: 20px; background: var(--ink); color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  #toast.ok { background: #14532d; } #toast.bad { background: #7f1d1d; } #toast.warn { background: #78350f; }
+  #toast pre { font-size: 17px; line-height: 1.6; }
+  .cal button i { display: block; font-style: normal; font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1; }
+  .cal button.on i { color: #fff; }
+  .cal button.pend { background: var(--warn-soft); box-shadow: inset 0 0 0 2px #f0c64a; }
+  .cal button.appr { background: #e7f0ff; box-shadow: inset 0 0 0 2px #5b8def; }
+  .cal button.rej  { background: var(--bad-soft); box-shadow: inset 0 0 0 2px #ef8a80; }
+  .cal button.on   { background: var(--ok); color: #fff; box-shadow: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 4px; vertical-align: -1px; }
+  .dot.on { background: var(--ok); } .dot.pend { background: #f0c64a; } .dot.appr { background: #5b8def; } .dot.rej { background: #ef8a80; }
+  .pill.blue { background: #e7f0ff; color: #2753b8; }
+  .mbox { margin-top: 10px; padding: 12px; border-radius: 16px; background: #faf9f6; }
+  .mbox input[type=time], .mbox select { min-height: 44px; font-size: 17px; padding: 6px 8px; width: 120px; }
+  .mrow { margin-top: 10px; flex-wrap: nowrap; }
+  .mlabel { flex: 1; min-width: 0; font-weight: 600; font-size: 17px; line-height: 1.3; }
+  nav.tabs button { font-size: 13px; padding: 0 2px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="who"><div class="shop" id="title">ลงเวลา</div><h1 id="who">กำลังเปิด…</h1></div>
+  <div class="date" id="date" hidden></div>
+</header>
+<main id="app"><div class="card hero"><div class="icon">⏳</div><div class="muted">กำลังโหลด…</div></div></main>
+<nav class="tabs" id="tabs" hidden></nav>
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ★ วางไฟล์นี้บนเว็บอื่น (เช่น GitHub Pages): แก้แค่ API_URL บรรทัดเดียว = URL ของสคริปต์ (…/exec)
+//   LIFF ID ไม่ต้องใส่ในไฟล์นี้ — หน้าเว็บถามจากเซิร์ฟเวอร์เอง (อยู่ใน Script Properties ชื่อ LIFF_ID)
+const API_URL = '__API_URL__';
+let LIFF_ID = '__LIFF_ID__';   // เปิดผ่าน URL ของ Apps Script ระบบเติมให้ · เว็บอื่นปล่อยไว้แบบนี้ได้
+
+const ST_WORK = 'มาทำงาน';
+const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
+let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
+let skew = 0;            // เวลาเซิร์ฟเวอร์ − เวลาเครื่อง
+let tab = 'time', bossTab = 'today';
+let busy = {};           // ปุ่มที่กำลังบันทึก (ไม่ล็อกหน้าจอ แค่กันกดซ้ำปุ่มเดิม)
+let armed = '';          // ปุ่มที่รอแตะยืนยันครั้งที่สอง
+let armTimer = null;
+let leaveType = 'ลากิจ';
+let bossCache = {};
+let idToken = '';
+
+// ---------- เริ่มต้น ----------
+boot();
+async function boot() {
+  if (API_URL.indexOf('__') === 0) {
+    return fatal('ยังไม่ได้ใส่ API_URL ในไฟล์ index.html (ดู README ขั้นที่ 5)');
+  }
+  if (!LIFF_ID || LIFF_ID.indexOf('__') === 0) {
+    try {
+      const c = await (await fetch(API_URL + '?config=1')).json();
+      LIFF_ID = c.liffId || '';
+    } catch (e) {
+      return fatal('ติดต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจ API_URL ใน index.html และการ Deploy (README ขั้นที่ 4)');
+    }
+    if (!LIFF_ID) return fatal('ยังไม่ได้ใส่ LIFF_ID ใน Script Properties (README ขั้นที่ 7)');
+  }
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    idToken = liff.getIDToken();
+    if (!idToken) return fatal('ไม่ได้รับ ID token — ต้องเปิด scope "openid" ในหน้า LIFF ของ LINE Developers');
+  } catch (e) {
+    return fatal('เปิด LIFF ไม่สำเร็จ: ' + e.message);
+  }
+  await refresh(true);
+  setInterval(() => { if (tab === 'time') renderTime(); }, 15000);                  // ป้ายเงินบนปุ่มเดินตามเวลาจริง
+  setInterval(() => { if (!document.hidden && !anyBusy()) refresh(); }, 60000);     // ข้อมูลสดทุก 60 วินาที
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !anyBusy()) refresh(); });
+}
+
+function fatal(msg) {
+  document.getElementById('app').innerHTML = `<div class="card hero"><div class="icon">😕</div><pre>${esc(msg)}</pre></div>`;
+  document.getElementById('who').textContent = 'เปิดไม่สำเร็จ';
+}
+
+// ---------- คุยกับเซิร์ฟเวอร์ ----------
+async function api(action, extra) {
+  const body = JSON.stringify(Object.assign({ action, idToken }, extra || {}));
+  const res = await fetch(API_URL + '?api=1', { method: 'POST', body });   // text/plain → ไม่ต้อง preflight
+  const j = await res.json();
+  if (j && j.auth) {
+    if (!sessionStorage.getItem('reauth')) { sessionStorage.setItem('reauth', '1'); location.reload(); }
+    throw new Error(j.error || 'ยืนยันตัวตนไม่ผ่าน');
+  }
+  sessionStorage.removeItem('reauth');
+  return j;
+}
+
+async function refresh(first) {
+  try {
+    const j = await api('state');
+    if (!j.ok) throw new Error(j.error || 'โหลดไม่สำเร็จ');
+    setState(j);
+  } catch (e) {
+    if (first) fatal('โหลดข้อมูลไม่สำเร็จ: ' + e.message + '\nลองปิดแล้วเปิดใหม่');
+    else toast('⚠️ เน็ตไม่เสถียร — ตัวเลขอาจยังไม่อัปเดต', 'warn');
+  }
+}
+
+function setState(j) {
+  S = j;
+  skew = j.now - Date.now();
+  render();
+}
+
+/**
+ * ทำงาน 1 ปุ่ม: เปลี่ยนหน้าจอก่อน แล้วบันทึกเบื้องหลัง
+ * rid = รหัสการกดครั้งนี้ · ส่งซ้ำ (เน็ตหลุด/กดใหม่) ใช้ rid เดิม → เซิร์ฟเวอร์บันทึกครั้งเดียว
+ */
+async function act(action, extra, optimistic) {
+  if (busy[action]) return null;
+  const rid = pendingRid(action);
+  busy[action] = true;
+  const before = S ? JSON.parse(JSON.stringify(S)) : null;
+  if (optimistic && S) { optimistic(S); render(); }
+  let res = null, lastErr = null;
+  for (let i = 0; i < 3 && !res; i++) {
+    try { res = await api(action, Object.assign({ rid }, extra || {})); }
+    catch (e) { lastErr = e; await sleep(1000 * (i + 1) * (i + 1)); }
+  }
+  busy[action] = false;
+  if (!res) {
+    if (before) S = before;
+    render();
+    toast('📶 เน็ตหลุด บันทึกไม่สำเร็จ\nกดปุ่มเดิมอีกครั้งได้เลย ระบบจะไม่บันทึกซ้ำ\n(' + (lastErr ? lastErr.message : '') + ')', 'bad', 9000);
+    return null;
+  }
+  clearPending(action);
+  if (res.state && res.state.ok) setState(res.state); else render();
+  if (res.text) toast(res.text, res.ok ? 'ok' : 'bad', res.ok ? 6000 : 9000);
+  else if (res.error) toast(res.error, 'bad', 9000);
+  if (res.ok && res.share) shareToGroup(res.share);
+  return res;
+}
+
+function pendingRid(action) {
+  const k = 'rid:' + action;
+  try {
+    const p = JSON.parse(localStorage.getItem(k) || 'null');
+    if (p && Date.now() - p.at < 10 * 60000) return p.rid;
+  } catch (e) {}
+  const rid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^\w-]/g, '');
+  try { localStorage.setItem(k, JSON.stringify({ rid, at: Date.now() })); } catch (e) {}
+  return rid;
+}
+function clearPending(action) { try { localStorage.removeItem('rid:' + action); } catch (e) {} }
+function anyBusy() { return Object.keys(busy).some(k => busy[k]); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ---------- ตัวช่วย ----------
+function esc(s) {
+  return String(s === undefined || s === null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function nowMs() { return Date.now() + skew; }
+function hhmm(ms) {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
+}
+function baht(n) { return Number(n || 0).toLocaleString('th-TH'); }
+
+/** สูตรเดียวกับเซิร์ฟเวอร์ (otRounds) — ใช้แสดงผลเท่านั้น ตัวเลขจริงคิดที่เซิร์ฟเวอร์ตอนกด */
+function otView(t) {
+  const o = S.ot, over = Math.floor((t - o.std) / 60000);
+  const rounds = over < o.first ? 0 : 1 + Math.floor((over - o.first) / o.step);
+  const nextAt = o.std + (rounds === 0 ? o.first : o.first + rounds * o.step) * 60000;
+  return { over, rounds, money: rounds * o.rate, beforeStd: t < o.std,
+           waitMin: Math.ceil((nextAt - t) / 60000), warn: over >= o.first && S.staying.length > o.keep };
+}
+
+function toast(text, kind, ms) {
+  const el = document.getElementById('toast');
+  el.className = kind || '';
+  el.innerHTML = `<pre>${esc(text)}</pre>`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, ms || 6000);
+  el.onclick = () => { el.style.display = 'none'; };
+}
+
+/** ปุ่มอันตราย: แตะครั้งแรก = ขอยืนยัน · แตะครั้งที่สองภายใน 6 วินาที = ทำจริง (ห้ามใช้ confirm()) */
+function twoTap(id, fn) {
+  if (armed === id) { armed = ''; clearTimeout(armTimer); fn(); return; }
+  armed = id;
+  clearTimeout(armTimer);
+  armTimer = setTimeout(() => { armed = ''; render(); }, 6000);
+  render();
+}
+
+// ---------- แจ้งในกลุ่ม (liff.sendMessages — ส่งในนามพนักงาน ไม่ใช่ push ของบอท) ----------
+let pendingShare = '';
+try { pendingShare = localStorage.getItem('pendingShare') || ''; } catch (e) {}
+function setPendingShare(t) { pendingShare = t || ''; try { localStorage.setItem('pendingShare', pendingShare); } catch (e) {} }
+function inGroup() {
+  try { const c = liff.getContext(); return !!c && (c.type === 'group' || c.type === 'room'); } catch (e) { return false; }
+}
+/** บันทึกลงชีตเสร็จก่อนเสมอ แล้วค่อยส่ง · ส่งพลาด → เก็บไว้ให้กด "ส่งแจ้งอีกครั้ง" (เวลาที่บันทึกไม่หาย) */
+async function shareToGroup(text) {
+  if (!text || !inGroup()) return;
+  try {
+    if (!liff.isApiAvailable('sendMessages')) throw new Error('ส่งข้อความจากหน้านี้ไม่ได้');
+    await liff.sendMessages([{ type: 'text', text: text.slice(0, 4900) }]);
+    setPendingShare('');
+  } catch (e) {
+    setPendingShare(text);
+    toast('📣 บันทึกเวลาแล้ว แต่ส่งแจ้งในกลุ่มไม่สำเร็จ\nกด "ส่งแจ้งอีกครั้ง" ได้เลย', 'warn', 8000);
+  }
+  render();
+}
+
+// ---------- วาดหน้าจอ ----------
+function render() {
+  if (!S) return;
+  document.getElementById('title').textContent = (S.shop || '') + ' · ลงเวลา';
+  if (!S.registered) { document.getElementById('who').textContent = 'ยินดีต้อนรับ'; return renderRegister(); }
+  document.getElementById('who').textContent = 'สวัสดี ' + S.me.name;
+  const dt = document.getElementById('date');
+  dt.hidden = false;
+  dt.textContent = S.day.label;
+  const tabs = [['time', '🕐', 'ลงเวลา'], ['leave', '📅', 'ขอลา'], ['my', '💰', 'ของฉัน'], ['audit', '📝', 'ประวัติแก้']];
+  if (S.me.boss) tabs.push(['boss', '👑', 'ผู้จัดการ']);
+  const nav = document.getElementById('tabs');
+  nav.hidden = false;
+  nav.innerHTML = tabs.map(t => `<button class="${tab === t[0] ? 'on' : ''}" data-tab="${t[0]}"><b>${t[1]}</b>${t[2]}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b => b.onclick = () => {
+    tab = b.dataset.tab; armed = ''; render();
+    if (tab === 'my') loadMy(); if (tab === 'boss') loadBoss(); if (tab === 'audit') loadAudit();
+  });
+  if (tab === 'time') renderTime();
+  else if (tab === 'leave') renderLeave();
+  else if (tab === 'my') renderMy();
+  else if (tab === 'audit') renderAudit();
+  else if (tab === 'boss') renderBoss();
+}
+
+// ---------- ลงทะเบียน / เปลี่ยนเครื่อง (สเปค 4.6) ----------
+let regMode = '';
+function renderRegister() {
+  document.getElementById('tabs').hidden = true;
+  const app = document.getElementById('app');
+  if (!regMode) {
+    app.innerHTML = `
+      <div class="card hero"><div class="icon">👋</div><h2 style="margin:6px 0 0">ยังไม่รู้จักเครื่องนี้</h2>
+        <div class="muted">เลือกข้อที่ตรงกับคุณ</div></div>
+      <button class="btn green" id="rgNew">ฉันเป็นพนักงานใหม่<small>ลงทะเบียนครั้งแรก</small></button>
+      <div class="gap"></div>
+      <button class="btn quiet" id="rgOld">เคยทำงานที่นี่แล้ว<small>เปลี่ยนมือถือ / เปลี่ยน LINE ใหม่ — ประวัติเดิมตามมาครบ</small></button>`;
+    document.getElementById('rgNew').onclick = () => { regMode = 'new'; render(); };
+    document.getElementById('rgOld').onclick = () => { regMode = 'old'; render(); };
+    return;
+  }
+  const isOld = regMode === 'old';
+  const names = (S.names || []).map(n => `<option>${esc(n)}</option>`).join('');
+  app.innerHTML = `
+    <div class="card hero"><div class="icon">${isOld ? '🔄' : '📝'}</div>
+      <h2 style="margin:6px 0 0">${isOld ? 'ผูกบัญชีกับเครื่องนี้' : 'ลงทะเบียนครั้งแรก'}</h2>
+      <div class="muted">${isOld ? 'เลือกชื่อตัวเอง แล้วใส่รหัสร้าน' : 'ทำครั้งเดียว ต่อไปกดเข้างานได้เลย'}</div></div>
+    <div class="card">
+      <div class="muted">${isOld ? 'ชื่อของคุณ' : 'ชื่อเล่น (คำเดียว)'}</div>
+      ${isOld ? `<select id="rgName" style="width:100%;margin:6px 0 14px"><option value="">— เลือกชื่อ —</option>${names}</select>`
+              : '<input id="rgName" autocomplete="off" style="width:100%;margin:6px 0 14px">'}
+      <div class="muted">รหัสร้าน (ขอจากเจ้าของ)</div>
+      <input id="rgCode" inputmode="numeric" autocomplete="off" style="width:100%;margin-top:6px">
+      ${isOld ? '<div class="note warn">ห้ามเลือกชื่อคนอื่น — ทุกคนในกลุ่มจะเห็นว่าใครผูกบัญชีใหม่</div>' : ''}
+    </div>
+    <button class="btn" id="rgGo">${isOld ? 'ผูกบัญชี' : 'ลงทะเบียน'}</button>
+    <div class="gap"></div><button class="btn quiet" id="rgBack">ย้อนกลับ</button>`;
+  document.getElementById('rgBack').onclick = () => { regMode = ''; render(); };
+  document.getElementById('rgGo').onclick = () => {
+    const name = document.getElementById('rgName').value.trim(), code = document.getElementById('rgCode').value.trim();
+    if (!name) return toast(isOld ? 'เลือกชื่อก่อนนะ' : 'ใส่ชื่อเล่นก่อนนะ', 'bad');
+    if (!code) return toast('ใส่รหัสร้านด้วย', 'bad');
+    act(isOld ? 'relink' : 'register', { name, code });
+  };
+}
+
+/** การ์ดบนสุด: นาฬิกาใหญ่ + สถานะสั้นๆ บรรทัดเดียว */
+function hero(top, statusText, statusCls, extra) {
+  return `<div class="card hero">${top}<div><span class="status ${statusCls || ''}">${statusText}</span></div>${extra || ''}</div>`;
+}
+
+function renderTime() {
+  if (!S || !S.registered || tab !== 'time') return;
+  const app = document.getElementById('app');
+  const t = nowMs(), d = S.today, ot = S.ot;
+  const clock = `<div class="clock">${hhmm(t)}</div>`;
+  const checkedIn = d && d.status === ST_WORK && d.in;
+  const out = checkedIn && (d.out || d.early);
+  const offStatus = d && d.status && d.status !== ST_WORK;
+  const showOt = S.perPerson && S.me.ot;
+  const v = otView(t);
+  const lateLine = checkedIn && (d.late || d.fine) ? `<div class="note warn">สาย ${d.late} นาที · หัก ${baht(d.fine)} บาท</div>` : '';
+  let html = '';
+
+  if (pendingShare) {
+    html += `<div class="card"><div class="note warn" style="margin-top:0">📣 ยังไม่ได้แจ้งในกลุ่ม<br><span style="font-size:15px">${esc(pendingShare.split('\n')[0])}</span></div>
+      <div class="gap" style="height:10px"></div><button class="small-btn" id="bShare" style="width:100%">📣 ส่งแจ้งอีกครั้ง</button></div>`;
+  }
+
+  // 1) สถานะ
+  if (busy.checkin) html += hero('<div class="icon">📡</div>', 'กำลังหาตำแหน่ง…', 'warn', '<div class="muted" style="margin-top:8px">ถือมือถือนิ่งๆ สักครู่</div>');
+  else if (S.day.closedDay) html += hero('<div class="icon">🏖️</div>', 'วันนี้ร้านหยุด');
+  else if (offStatus) html += hero(clock, 'บันทึกว่า ' + esc(d.status), 'bad', '<div class="muted" style="margin-top:8px">ถ้าผิด แจ้งผู้จัดการ</div>');
+  else if (!checkedIn) html += hero(clock, S.day.works ? 'ยังไม่เข้างาน' : 'วันนี้ไม่ใช่วันทำงานของคุณ');
+  else if (!out) html += hero(clock, 'ทำงานอยู่ · เข้า ' + esc(d.in), d.late ? 'warn' : 'ok', lateLine);
+  else if (d.early) html += hero(clock, 'กลับก่อน ' + esc(d.early), '', '<div class="result">ไม่มี OT คืนนี้<small>ไม่หักค่าแรง</small></div>' + lateLine);
+  else html += hero(clock, (busy.checkout ? 'กำลังบันทึก… ' : 'เลิกงานแล้ว ') + esc(d.out), 'ok',
+    (showOt && !busy.checkout ? `<div class="result">${d.rounds ? `OT ${baht(d.rounds * ot.rate)} บาท<small>${d.rounds} รอบ</small>` : 'ไม่มี OT<small>ยังไม่ถึงรอบ</small>'}</div>` : '') + lateLine);
+
+  // 2) ปุ่มหลัก (ทีละปุ่ม)
+  if (!S.day.closedDay && !offStatus) {
+    if (!checkedIn && !busy.checkin) {
+      html += `<button class="btn green" id="bIn">เข้างาน<small>กดตอนอยู่ที่ร้าน</small></button>`;
+    } else if (checkedIn && !out) {
+      if (showOt && v.beforeStd) {
+        // ก่อนเวลาปิดมาตรฐาน = กลับก่อน (ไม่ได้ OT ทั้งคืน)
+        const lbl = armed === 'early' ? 'แตะอีกครั้ง ยืนยัน' : 'กลับก่อน';
+        html += `<button class="btn orange${armed === 'early' ? ' confirm' : ''}" id="bEarly">${lbl}<small>ก่อน ${ot.stdHm} · คืนนี้ไม่ได้ OT</small></button>`;
+        html += `<span class="hint">⏳ อยู่ถึง ${hhmm(ot.std + ot.first * 60000)} ได้ OT ${baht(ot.rate)} บ.</span>`;
+      } else {
+        let sub = 'บันทึกเวลาออก';
+        if (showOt) sub = v.rounds === 0 ? 'ยังไม่ถึงรอบ OT' : `ได้ OT ${v.rounds} รอบ · ${baht(v.money)} บาท`;
+        const lbl = armed === 'out' ? 'แตะอีกครั้ง ยืนยัน' : 'เลิกงาน';
+        html += `<button class="btn${armed === 'out' ? ' confirm' : ''}" id="bOut">${lbl}<small>${esc(sub)}</small></button>`;
+        if (showOt && !S.closed) {
+          html += `<span class="hint">⏳ รออีก ${v.waitMin} นาที ${v.rounds === 0 ? 'ได้ OT' : 'ได้เพิ่ม'} ${baht(ot.rate)} บ.</span>`;
+        }
+      }
+    }
+    if (!inGroup() && !checkedIn) html += '<div class="muted center" style="margin-top:10px">💡 เปิดหน้านี้จากในกลุ่มร้าน คนอื่นจะเห็นตอนคุณลงเวลา</div>';
+  }
+
+  // 3) ใครยังอยู่ที่ร้าน
+  if (checkedIn || t >= ot.std) {
+    html += '<div class="gap"></div>';
+    if (S.closed) {
+      html += `<div class="card"><div class="row"><span style="font-size:26px">🌙</span><div><b>ปิดร้านแล้ว ${esc(S.closed.hm)}</b><div class="muted">โดย ${esc(S.closed.by)}</div></div></div></div>`;
+    } else {
+      const chips = S.staying.map(n => `<span class="chip">${esc(n)}</span>`).join('') +
+                    S.stayingOther.map(n => `<span class="chip grey">${esc(n)} · ครัว</span>`).join('');
+      html += `<div class="card"><h2>ยังอยู่ที่ร้าน ${S.staying.length} คน</h2>
+        ${chips ? `<div class="chips">${chips}</div>` : '<div class="muted">กลับหมดแล้ว</div>'}
+        ${showOt && v.warn ? `<div class="note warn">⚠️ ตอนนี้อยู่ ${S.staying.length} คน · ร้านตั้งไว้ว่าหลังรอบแรกให้เหลือ ${ot.keep} คน<br>ตกลงกันเองว่าใครอยู่ต่อ</div>` : ''}</div>`;
+    }
+  }
+
+  // 4) ปิดร้าน — ปุ่มรอง
+  if (t >= ot.std && !S.closed && !S.day.closedDay) {
+    const lbl = busy.close ? 'กำลังปิดร้าน…' : armed === 'close' ? `แตะอีกครั้ง ปิดร้าน ${hhmm(t)}` : '🌙 ปิดร้าน';
+    html += `<button class="btn quiet${armed === 'close' ? ' confirm' : ''}" id="bClose" ${busy.close ? 'disabled' : ''}>${lbl}<small>คนสุดท้ายกด</small></button>`;
+  }
+  app.innerHTML = html;
+
+  const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+  on('bIn', checkIn);
+  on('bShare', () => shareToGroup(pendingShare));
+  on('bOut', () => twoTap('out', () => {
+    const at = hhmm(nowMs());
+    act('checkout', {}, s => { s.today.out = at; s.staying = s.staying.filter(n => n !== s.me.name); });
+  }));
+  on('bEarly', () => twoTap('early', () => {
+    const at = hhmm(nowMs());
+    act('early', {}, s => { s.today.early = at; s.today.out = at; s.staying = s.staying.filter(n => n !== s.me.name); });
+  }));
+  on('bClose', () => twoTap('close', () => doClose()));
+}
+
+async function doClose(time) {
+  const at = time || hhmm(nowMs());
+  return act('close', time ? { time } : {}, s => { s.closed = { hm: at, by: s.me.name }; });
+}
+
+// ---------- เช็คอิน GPS ----------
+async function checkIn() {
+  if (busy.checkin) return;
+  busy.checkin = true; render();
+  let pos;
+  try { pos = await getBestPosition(); }
+  catch (e) { busy.checkin = false; render(); return toast('❌ ' + e.message, 'bad', 9000); }
+  busy.checkin = false;
+  const c = pos.coords;
+  act('checkin', { lat: c.latitude, lng: c.longitude, acc: Math.round(c.accuracy) },
+      s => { s.today = { status: ST_WORK, in: hhmm(nowMs()), out: '', early: '', rounds: 0 }; });
+}
+
+/** เก็บตำแหน่งหลายครั้งภายใน ~10 วินาที เลือกค่าที่แม่นที่สุด (GPS ครั้งแรกมักคลาดเยอะ) */
+function getBestPosition(maxMs, goodAcc) {
+  maxMs = maxMs || 10000; goodAcc = goodAcc || 25;
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('เครื่องนี้ใช้ GPS ไม่ได้ — ใช้วิธีแชร์ตำแหน่งในแชทแทน'));
+    let best = null, done = false, id = null;
+    const finish = err => {
+      if (done) return; done = true;
+      if (id !== null) navigator.geolocation.clearWatch(id);
+      clearTimeout(timer);
+      if (best) resolve(best);
+      else reject(err || new Error('หาตำแหน่งไม่เจอ ลองออกไปที่โล่งแล้วกดใหม่'));
+    };
+    const timer = setTimeout(() => finish(), maxMs);
+    id = navigator.geolocation.watchPosition(p => {
+      if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+      if (p.coords.accuracy <= goodAcc) finish();
+    }, err => {
+      if (err.code === 1) finish(new Error('ยังไม่อนุญาตให้ LINE ใช้ตำแหน่ง — เปิดสิทธิ์ตำแหน่งในการตั้งค่ามือถือ แล้วกดใหม่'));
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: maxMs });
+  });
+}
+
+// ---------- ขอลา / ขอเข้าสาย — ปฏิทินเดียว 3 โหมด (สเปค 4.4) ----------
+let leaveSel = [];
+function calCell(c) {
+  // สถานะใบลาเดิมของวันนั้น (ทุกประเภท)
+  const st = (c.my || []).filter(x => x.status !== 'ปฏิเสธ');
+  const rej = (c.my || []).some(x => x.status === 'ปฏิเสธ');
+  const hasLeave = st.some(x => x.type !== 'ขอเข้าสาย'), hasPass = st.some(x => x.type === 'ขอเข้าสาย');
+  let cls = '', tag = '';
+  if (st.some(x => x.status === 'อนุมัติ')) cls = 'appr'; else if (st.length) cls = 'pend'; else if (rej) cls = 'rej';
+  const isPass = leaveType === 'ขอเข้าสาย';
+  const units = leaveType === 'ลาป่วย' ? c.sick : c.kij;
+  // ลา: ย้อนหลังได้ (ฉุกเฉิน) แต่ไม่ใช่วันที่เข้างานแล้ว · ขอเข้าสาย: วันนี้ได้ถ้ายังไม่เข้างาน ย้อนหลังไม่ได้
+  const shut = c.off || (isPass ? (c.ahead < 0 || (c.ahead === 0 && c.came) || hasPass)
+                                : (hasLeave || (c.ahead <= 0 && (c.came || c.absent))));
+  if (!c.off && !st.length) tag = isPass ? '' : (units ? `−${units}` : '0');
+  if (st.length) tag = st[0].type === 'ขอเข้าสาย' ? 'สาย' : st[0].type.replace('ลา', '');
+  if (leaveSel.indexOf(c.k) >= 0) cls = 'on';
+  return `<button data-k="${c.k}" class="${cls}" ${shut ? 'disabled' : ''}>${+c.k.slice(8)}${tag ? `<i>${esc(tag)}</i>` : ''}</button>`;
+}
+
+function renderLeave() {
+  const app = document.getElementById('app');
+  const cal = S.cal || [], lc = S.leaveCfg || {}, wage = S.me.wage || 0;
+  let grid = '', lastMon = -1;
+  cal.forEach(function (c) {
+    const mo = +c.k.slice(5, 7) - 1;
+    if (mo !== lastMon) {
+      lastMon = mo;
+      grid += `<div class="mon">${MON_FULL[mo]} ${+c.k.slice(0, 4) + 543}</div>` + DOW.map(x => `<div class="dow">${x}</div>`).join('');
+      for (let k = 0; k < c.dow; k++) grid += '<span></span>';
+    }
+    grid += calCell(c);
+  });
+  const isPass = leaveType === 'ขอเข้าสาย';
+  const picked = cal.filter(c => leaveSel.indexOf(c.k) >= 0);
+  let sum = '';
+  if (picked.length) {
+    let units = 0;
+    const lines = picked.map(c => {
+      const u = leaveType === 'ลาป่วย' ? c.sick : c.kij;
+      units += u;
+      const d = `${DOW[c.dow]}. ${+c.k.slice(8)}/${+c.k.slice(5, 7)}`;
+      if (isPass) return `<div class="item"><div class="main">${d}</div><div class="amt">${baht(lc.fee)} บ.</div></div>`;
+      return `<div class="item"><div class="main">${d}${c.ahead < 0 ? ' <span class="pill warn">ย้อนหลัง</span>' : c.adv ? '' : ' <span class="pill warn">กะทันหัน</span>'}</div>
+        <div class="amt">${u ? `หัก ${u} แรง` : 'ไม่หัก'}</div></div>`;
+    }).join('');
+    const total = isPass ? `รวมค่าธรรมเนียม ${baht(lc.fee * picked.length)} บาท`
+                         : units ? `รวมหัก ${units} แรง ≈ ${baht(units * wage)} บาท` : 'ไม่หักแรง';
+    sum = `<div class="card"><h2>เลือก ${picked.length} วัน</h2><div class="list">${lines}</div>
+      <div class="total"><span>${total}</span></div>
+      ${isPass ? `<div class="muted" style="margin-top:6px">เข้าได้ถึง ${esc(lc.until)} น. · ไม่โดนปรับนาที</div>` : ''}</div>`;
+  }
+  const lvPill = l => l.status === 'ปฏิเสธ' ? ['bad', 'ไม่อนุมัติ'] : l.status === 'รออนุมัติ' ? ['warn', 'รออนุมัติ'] :
+                     l.checked ? ['blue', 'ผู้จัดการยืนยัน'] : ['blue', 'ระบบนับแล้ว'];
+  const mine = (S.myLeaves || []).map(l => `<div class="item"><div class="main"><div class="name">${esc(l.type)}</div>
+      <div class="sub">${+l.date.slice(8)} ${MON[+l.date.slice(5, 7) - 1]}${l.units ? ` · หัก ${l.units} แรง` : ''}</div></div>
+      <span class="pill ${lvPill(l)[0]}">${lvPill(l)[1]}</span>
+      ${l.status !== 'ปฏิเสธ' && !l.checked ? `<button class="small-btn ghost" data-cancel="${esc(l.id)}">${armed === 'cancel' + l.id ? 'แตะอีกครั้ง' : 'ยกเลิก'}</button>` : ''}</div>`).join('');
+  const backTxt = lc.back ? ` · ฉุกเฉินลาย้อนหลังได้ ${lc.back} วัน` : '';
+  const hint = isPass ? `ค่าธรรมเนียม ${baht(lc.fee)} บาท/วัน · ขอวันนี้ได้ถ้ายังไม่กดเข้างาน` :
+               (leaveType === 'ลาป่วย' && !lc.sickDeduct ? 'ลาป่วยไม่หักแรง' : 'ตัวเลขใต้วัน = แรงที่หัก (อังคาร ศุกร์ เสาร์ หักหนักกว่า)') + backTxt;
+  app.innerHTML = `
+    <div class="seg">${[['ลากิจ', 'ลากิจ'], ['ลาป่วย', 'ลาป่วย'], ['ขอเข้าสาย', 'เข้าสาย']].map(x =>
+      `<button data-t="${x[0]}" class="${leaveType === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>
+    <div class="card"><div class="muted" style="margin-bottom:8px">${hint}</div><div class="cal">${grid}</div>
+      <div class="legend"><span><i class="dot on"></i>เลือกอยู่</span>
+        <span><i class="dot appr"></i>ลาแล้ว</span><span><i class="dot rej"></i>ไม่อนุมัติ</span></div></div>
+    ${sum}
+    <button class="btn" id="lvGo" ${picked.length && !busy.leave ? '' : 'disabled'}>${busy.leave ? 'กำลังส่ง…' :
+      picked.length ? `ส่ง${isPass ? 'ขอเข้าสาย' : 'ใบลา'} ${picked.length} วัน` : 'แตะวันในปฏิทินก่อน'}<small>ระบบนับให้ทันที · ผู้จัดการตรวจตอนปิดงวด</small></button>
+    ${mine ? `<div class="gap"></div><div class="card"><h2>ใบลาของฉัน</h2><div class="list">${mine}</div></div>` : ''}`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { leaveType = b.dataset.t; leaveSel = []; render(); });
+  app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k, i = leaveSel.indexOf(k);
+    if (i >= 0) leaveSel.splice(i, 1); else if (leaveSel.length < 14) leaveSel.push(k);
+    render();
+  });
+  app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => twoTap('cancel' + b.dataset.cancel, () => act('cancelLeave', { id: b.dataset.cancel })));
+  document.getElementById('lvGo').onclick = async () => {
+    const r = await act('leave', { type: leaveType, dates: leaveSel.slice().sort() });
+    if (r && r.ok) leaveSel = [];
+    render();
+  };
+}
+
+// ---------- ของฉัน ----------
+let myText = '';
+async function loadMy() {
+  try { const r = await api('my'); myText = r.ok ? r.text : (r.error || ''); }
+  catch (e) { myText = '📶 โหลดไม่สำเร็จ ลองใหม่'; }
+  if (tab === 'my') renderMy();
+}
+function renderMy() {
+  // แปลงสลิปข้อความ ("OT 1 รอบ  →  +50") เป็นรายการอ่านง่าย
+  const lines = String(myText || '').split('\n');
+  const rows = [], notes = [], edits = [];
+  let total = '';
+  lines.forEach(l => {
+    const t = l.trim();
+    if (t.indexOf('📝') === 0) { edits.push(t.replace(/^📝\s*/, '')); return; }
+    const m = l.match(/^\s+(.+?)\s+→\s+([+-]?[\d,]+)\s*$/);
+    if (!m) { if (t && !/^\S+ · [\d,]+\/วัน$/.test(t)) notes.push(t); return; }
+    if (m[1].trim() === 'รวม') total = m[2]; else rows.push([m[1].trim(), m[2]]);
+  });
+  let html;
+  if (!myText) html = '<div class="card hero"><div class="icon">⏳</div><div class="muted">กำลังโหลด…</div></div>';
+  else if (!rows.length) html = `<div class="card"><pre>${esc(myText)}</pre></div>`;
+  else {
+    const head = notes.shift() || '';
+    html = `<div class="card hero"><div class="muted">${esc(head.replace(/^📊\s*/, ''))}</div>
+        <div class="clock" style="font-size:52px;margin-top:6px">${esc(total)}<span style="font-size:22px"> บาท</span></div>
+        <div><span class="status">ยอดถึงตอนนี้</span></div></div>
+      <div class="card"><div class="list">${rows.map(r => `<div class="item"><div class="main">${esc(r[0])}</div>
+        <div class="amt" style="color:${r[1].charAt(0) === '-' ? 'var(--bad)' : 'var(--ink)'}">${esc(r[1])}</div></div>`).join('')}</div></div>
+      ${edits.length ? `<div class="card"><h2>📝 มีการแก้ข้อมูลของคุณ</h2>${edits.map(x => `<div class="muted">• ${esc(x)}</div>`).join('')}</div>` : ''}
+      ${notes.filter(n => n.indexOf('※') === 0).map(n => `<div class="muted center">${esc(n)}</div>`).join('')}`;
+  }
+  document.getElementById('app').innerHTML = html + '<div class="gap"></div><button class="btn quiet" id="myR">โหลดใหม่</button>';
+  document.getElementById('myR').onclick = () => { myText = ''; renderMy(); loadMy(); };
+}
+
+// ---------- ประวัติแก้ไข — ทุกคนเปิดดูได้ (สเปค 4.8 ชั้น 3) ----------
+let auditData = null, auditPeriod = 0;
+async function loadAudit() {
+  try { auditData = await api('audit', { period: auditPeriod }); } catch (e) { auditData = { ok: false, error: '📶 โหลดไม่สำเร็จ' }; }
+  if (tab === 'audit') renderAudit();
+}
+function auditItem(a) {
+  return `<div class="item" style="display:block${a.self ? ';background:var(--warn-soft);margin:0 -12px;padding:12px' : ''}">
+    <div class="sub">${esc(a.day)} · แก้เมื่อ ${esc(a.at.slice(8, 10))}/${+a.at.slice(5, 7)} ${esc(a.at.slice(11))} · <b>${esc(a.editor)}</b>
+      ${a.self ? '<span class="pill bad">⚠️ แก้ของตัวเอง</span>' : ''}</div>
+    <div class="name" style="font-weight:600">${esc(a.what)}${a.self ? '' : ` ของ ${esc(a.owner)}`}</div>
+    <div class="num">${esc(a.from)} → ${esc(a.to)}</div>
+    ${a.reason ? `<div class="muted">"${esc(a.reason)}"</div>` : '<div class="muted">(ไม่ใส่เหตุผล)</div>'}</div>`;
+}
+function renderAudit() {
+  const r = auditData;
+  let body;
+  if (!r) body = '<div class="card hero"><div class="icon">⏳</div><div class="muted">กำลังโหลด…</div></div>';
+  else if (!r.ok) body = `<div class="card"><div class="note bad">${esc(r.error)}</div></div>`;
+  else if (!r.items.length) body = `<div class="card hero"><div class="icon">✅</div><div class="muted">งวด ${esc(r.code)} ยังไม่มีการแก้ไข</div></div>`;
+  else body = `<div class="card"><h2>📝 ประวัติการแก้ไข · งวด ${esc(r.code)}</h2><div class="muted">ผู้จัดการแก้อะไร ทุกคนเห็นเหมือนกัน</div>
+    <div class="list">${r.items.map(auditItem).join('')}</div></div>`;
+  document.getElementById('app').innerHTML =
+    `<div class="seg"><button data-p="0" class="${auditPeriod === 0 ? 'on' : ''}">งวดนี้</button><button data-p="-1" class="${auditPeriod === -1 ? 'on' : ''}">งวดก่อน</button></div>` + body;
+  document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { auditPeriod = +b.dataset.p; auditData = null; renderAudit(); loadAudit(); });
+}
+
+// ---------- ผู้จัดการ (สเปค 4.7) ----------
+let bossDate = '', bossOpen = '';
+async function loadBoss() {
+  const k = bossTab;
+  try {
+    let r;
+    if (k === 'today') r = await api('bossToday', { date: bossDate });
+    else if (k === 'leaves') r = await api('bossLeaves');
+    else if (k === 'pay') r = await api('payPreview');
+    else r = await api('ownerSettings');
+    bossCache[k] = r;
+  } catch (e) { bossCache[k] = { ok: false, error: '📶 โหลดไม่สำเร็จ' }; }
+  if (tab === 'boss' && bossTab === k) renderBoss();
+}
+
+function renderBoss() {
+  const subs = [['today', 'วันนี้'], ['leaves', 'ใบลา'], ['pay', 'จ่ายเงิน']];
+  if (S.me.owner) subs.push(['set', 'ตั้งค่า']);
+  const r = bossCache[bossTab];
+  let body = '';
+  if (!r) body = '<div class="card hero"><div class="icon">⏳</div><div class="muted">กำลังโหลด…</div></div>';
+  else if (!r.ok) body = `<div class="card"><div class="note bad">${esc(r.error || 'ผิดพลาด')}</div></div>`;
+  else if (bossTab === 'today') body = bossTodayHtml(r);
+  else if (bossTab === 'leaves') body = bossLeavesHtml(r);
+  else if (bossTab === 'pay') body = bossPayHtml(r);
+  else body = bossSetHtml(r);
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="seg">${subs.map(s => `<button data-s="${s[0]}" class="${bossTab === s[0] ? 'on' : ''}">${s[1]}</button>`).join('')}</div>` + body;
+  app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { bossTab = b.dataset.s; renderBoss(); loadBoss(); });
+  wireBoss(app);
+}
+
+function manageBox(x, r) {
+  const self = x.name === S.me.name, work = x.status === ST_WORK;
+  const row = (label, ctl, kind) => `<div class="row mrow"><span class="mlabel">${label}</span>${ctl}
+    <button class="small-btn" data-m="${kind}">บันทึก</button></div>`;
+  let h = `<div class="mbox">
+    <input id="mReason" placeholder="${self ? 'เหตุผล (ต้องใส่ — แก้ของตัวเอง)' : 'เหตุผล (ไม่บังคับ)'}" style="width:100%">`;
+  if (self) h += '<div class="note warn">⚠️ นี่คือข้อมูลของคุณเอง — ทุกคนจะเห็นว่าแก้ของตัวเอง</div>';
+  if (work) {
+    h += row('แก้เวลาเข้า', `<input type="time" id="mIn" value="${esc(x.in || '16:00')}">`, 'editIn');
+    h += row('แก้เวลาออก', `<input type="time" id="mOut" value="${esc(x.out || '02:00')}">`, 'editOut');
+    if (x.late || x.fine) h += row(`ยกเว้นสาย <span class="muted">(${x.late} นาที · ${baht(x.fine)} บ.)</span>`, '', 'excuse');
+    h += row('ปรับค่าปรับเอง (บาท)', `<input type="number" id="mBaht" min="0" value="${x.fine}" style="width:90px">`, 'fine');
+  }
+  if (x.status !== 'ขาดงาน') h += row('ขาด', `<select id="mUnits">${[1, 2, 3, 4, 5].map(n => `<option value="${n}">${n} แรง</option>`).join('')}</select>`, 'absent');
+  else h += row('ยกเลิกขาด', '', 'undoAbsent');
+  if (r.foodOn && x.status !== 'ยังไม่มา') h += x.noFood ? row('คืนค่าอาหาร', '', 'food') : row('ไม่ได้ค่าอาหาร', '', 'noFood');
+  return h + '</div>';
+}
+
+function bossTodayHtml(r) {
+  const items = r.rows.map(x => {
+    const tag = x.status !== ST_WORK ? `<span class="pill ${x.status === 'ยังไม่มา' ? '' : 'bad'}">${esc(x.status)}</span>` :
+                x.early ? '<span class="pill warn">กลับก่อน</span>' : !x.ot ? '<span class="pill">ครัว</span>' : '';
+    const late = x.late || x.fine ? ` · <span style="color:var(--bad)">สาย ${x.late} น. −${baht(x.fine)}</span>` : '';
+    const amt = x.ot && x.status === ST_WORK ? `${baht(x.money)}<small>OT ${x.rounds} รอบ</small>` : '<small>–</small>';
+    return `<div class="item" style="flex-wrap:wrap"><div class="main"><div class="name">${esc(x.name)} ${tag}</div>
+      <div class="sub num">${esc(x.in || '–')} → ${esc(x.out || (x.status === ST_WORK ? 'ยังอยู่' : '–'))}${late}</div></div>
+      <div class="amt">${amt}</div>
+      ${r.locked ? '' : `<button class="small-btn ghost" data-open="${esc(x.name)}">${bossOpen === x.name ? 'ปิด' : 'จัดการ'}</button>`}
+      ${bossOpen === x.name ? `<div style="width:100%">${manageBox(x, r)}</div>` : ''}</div>`;
+  }).join('');
+  return `
+    <div class="card"><div class="row"><input type="date" id="bdDate" value="${esc(r.key)}" style="flex:1">
+      ${r.locked ? '<span class="pill bad">งวดปิดแล้ว แก้ไม่ได้</span>' : ''}</div>
+      <div class="muted" style="margin-top:8px">${r.closed ? `🌙 ปิดร้าน ${esc(r.closed.hm)} · โดย ${esc(r.closed.by)}` : 'ยังไม่บันทึกปิดร้าน'}</div></div>
+    <div class="card"><h2>${esc(r.label)}</h2>
+      ${items ? `<div class="list">${items}</div><div class="total"><span>OT คืนนี้</span><span class="num">${baht(r.totalOt)} บาท</span></div>` : '<div class="muted">ไม่มีใครต้องทำงานวันนี้</div>'}</div>
+    ${r.locked ? '' : `<div class="card"><h2>🌙 ${r.closed ? 'แก้เวลาปิดร้าน' : 'บันทึกปิดร้าน'}</h2><div class="muted">คนที่กดเลิกงานเองไม่ถูกเปลี่ยน</div>
+      <div class="row" style="margin-top:10px"><input type="time" id="rcTime" value="${esc(r.closed ? r.closed.hm : '02:00')}" style="flex:1">
+      <button class="small-btn" id="rcGo">${armed === 'reclose' ? 'แตะอีกครั้ง' : 'บันทึก'}</button></div></div>`}`;
+}
+
+const lvReason = {};   // เหตุผลที่พิมพ์ค้างไว้ (กันหายตอนหน้าวาดใหม่หลังแตะครั้งแรก)
+function bossLeavesHtml(r) {
+  if (!r.items.length) return '<div class="card hero"><div class="icon">✅</div><div class="muted">ยังไม่มีใบลาในงวดนี้</div></div>';
+  const head = r.todo ? `<div class="card"><div class="note warn" style="margin-top:0">ติ๊กให้ครบก่อนปิดงวด · เหลือ ${r.todo} ใบ<br>
+      <span style="font-size:15px">ระบบนับแรงให้แล้ว แค่ดูว่าถูกไหม · ไม่ถูก กด "ไม่อนุมัติ" (วันที่ผ่านไปแล้วจะกลายเป็นขาดงาน)</span></div></div>`
+    : '<div class="card"><div class="note ok" style="margin-top:0">✔️ ติ๊กครบทุกใบแล้ว</div></div>';
+  return head + r.items.map(x => {
+    const self = x.name === S.me.name, rej = x.status === 'ปฏิเสธ';
+    const pill = rej ? '<span class="pill bad">ไม่อนุมัติ</span>' : x.todo ? '<span class="pill warn">รอติ๊ก</span>' : '<span class="pill blue">✔️ ยืนยันแล้ว</span>';
+    return `<div class="card"><div class="row"><div style="flex:1"><div style="font-size:20px;font-weight:700">${esc(x.name)} · ${esc(x.type)}</div>
+      <div class="muted">${esc(x.day)} · ${esc(x.mode)}${x.units ? ` · หัก ${x.units} แรง` : ''} · ${esc(x.id)}</div>
+      ${x.back ? '<span class="pill warn">⚠️ ลาย้อนหลัง</span>' : ''}${x.by && !x.todo ? `<div class="muted" style="font-size:14px">โดย ${esc(x.by)}</div>` : ''}</div>${pill}</div>
+    ${rej ? '' : `${self ? `<input id="r_${esc(x.id)}" value="${esc(lvReason[x.id] || '')}" placeholder="ใบลาของตัวเอง — ใส่เหตุผลก่อนกดไม่อนุมัติ" style="width:100%;margin-top:10px">` : ''}
+      <div class="row" style="margin-top:12px">${x.todo ? `<button class="small-btn green" data-ok="${esc(x.id)}" style="flex:1">✔️ ถูกต้อง</button>` : ''}
+      <button class="small-btn red" data-no="${esc(x.id)}" style="flex:1">${armed === 'no' + x.id ? 'แตะอีกครั้ง' : 'ไม่อนุมัติ'}</button></div>`}
+    ${x.type === 'ขอเข้าสาย' || rej ? '' : `<div class="row" style="margin-top:10px"><span style="flex:1">ปรับแรง (ตอนนี้ ${x.units})</span>
+      <input type="number" min="0" max="10" id="u_${esc(x.id)}" value="${x.units}" style="width:80px">
+      <button class="small-btn ghost" data-units="${esc(x.id)}">บันทึก</button></div>`}</div>`;
+  }).join('');
+}
+
+function bossPayHtml(r) {
+  const items = r.items.map((x, i) => `<button class="item" data-slip="${i}" style="width:100%;text-align:left">
+    <div class="main"><div class="name">${esc(x.name)}</div><div class="sub">${x.work} วัน · OT ${baht(x.otPay)} บ.</div></div>
+    <div class="amt">${baht(x.net)}</div></button>`).join('');
+  return `<div class="card"><h2>งวด ${esc(r.code)}</h2><div class="muted">${r.canClose ? 'จบงวดแล้ว ปิดได้' : 'ยอดถึงตอนนี้'} · แตะชื่อดูสลิป</div>
+    ${items ? `<div class="list">${items}</div><div class="total"><span>รวม</span><span class="num">${baht(r.total)} บาท</span></div>` : '<div class="muted">ยังไม่มีข้อมูล</div>'}</div>
+    <div id="slipBox"></div>
+    ${r.deposit ? `<div class="card"><div class="note warn" style="margin-top:0">⚠️ ยอดนี้ยังไม่หักเงินประกัน<br>หัก ${baht(r.deposit)} บาท/งวด ต่อคน ก่อนโอน</div></div>` : ''}
+    <div class="card"><h2>พรีวิวปิดงวด</h2><pre style="font-size:15px">${esc(r.text)}</pre></div>
+    ${r.canClose ? `<button class="btn${armed === 'closeP' ? ' confirm' : ''}" id="pClose">${armed === 'closeP' ? 'แตะอีกครั้ง ปิดงวดจริง' : `ปิดงวด ${esc(r.code)}`}<small>บันทึกสลิป + ย้ายข้อมูลเก่า</small></button><div class="gap"></div>` : ''}
+    ${r.lastClosed ? `<button class="btn quiet${armed === 'undoP' ? ' confirm' : ''}" id="pUndo">${armed === 'undoP' ? 'แตะอีกครั้ง ล้างงวดจริง' : `ล้างงวด ${esc(r.lastClosed)}`}<small>ลบสลิปงวดล่าสุด ข้อมูลกลับมาแก้ได้</small></button>` : ''}`;
+}
+
+function bossSetHtml(r) {
+  const emps = r.emps.map((e, i) => `<div class="item" style="flex-wrap:wrap"><div class="main"><div class="name">${esc(e.name)}
+      ${e.owner ? '<span class="pill">เจ้าของ</span>' : e.manager ? '<span class="pill blue">ผู้จัดการ</span>' : ''}</div><div class="sub">${esc(e.dept)}</div></div>
+    <div class="row" style="width:100%"><input type="number" id="w${i}" value="${e.wage}" style="width:110px"><span class="muted">บ./วัน</span>
+      <button class="small-btn ghost" data-wage="${i}">บันทึก</button>
+      ${e.owner ? '' : `<button class="small-btn ghost" data-role="${i}">${e.manager ? 'ถอดผู้จัดการ' : 'ตั้งเป็นผู้จัดการ'}</button>`}</div></div>`).join('');
+  return `<div class="card"><h2>🔑 รหัสร้าน</h2><div class="clock" style="font-size:40px">${esc(r.code || '—')}</div>
+      <div class="row"><input id="newCode" inputmode="numeric" placeholder="รหัสใหม่ 4-8 หลัก" style="flex:1"><button class="small-btn" id="setCode">เปลี่ยน</button></div></div>
+    <div class="card"><h2>👥 ค่าแรง / ผู้จัดการ</h2><div class="list">${emps}</div></div>
+    <div class="card"><h2>⚙️ ตั้งค่า OT</h2><div class="list">` + r.items.map((x, i) => `<div class="item" style="flex-wrap:wrap">
+      <div class="main" style="min-width:60%"><div class="name">${esc(x.key)}</div>${x.hint ? `<div class="sub">${esc(x.hint)}</div>` : ''}</div>
+      <div class="row" style="width:100%"><input id="set${i}" value="${esc(x.value)}" style="flex:1"><button class="small-btn" data-set="${i}">บันทึก</button></div></div>`).join('') + '</div></div>';
+}
+
+function wireBoss(app) {
+  const r = bossCache[bossTab];
+  if (!r || !r.ok) return;
+  const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  if (bossTab === 'today') {
+    const dt = document.getElementById('bdDate');
+    if (dt) dt.onchange = () => { bossDate = dt.value; bossOpen = ''; bossCache.today = null; renderBoss(); loadBoss(); };
+    app.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { bossOpen = bossOpen === b.dataset.open ? '' : b.dataset.open; renderBoss(); });
+    app.querySelectorAll('[data-m]').forEach(b => b.onclick = async () => {
+      const kind = b.dataset.m, reason = val('mReason').trim();
+      if (bossOpen === S.me.name && !reason) return toast('⚠️ แก้ข้อมูลของตัวเองต้องใส่เหตุผลก่อน', 'bad');
+      const res = await act('manage', { kind, name: bossOpen, date: r.key, reason,
+        time: kind === 'editIn' ? val('mIn') : val('mOut'), baht: val('mBaht'), units: val('mUnits') });
+      if (res && res.ok) { bossOpen = ''; loadBoss(); }
+    });
+    const rc = document.getElementById('rcGo');
+    if (rc) rc.onclick = () => twoTap('reclose', async () => { await doClose(val('rcTime')); loadBoss(); });
+  }
+  if (bossTab === 'leaves') {
+    app.querySelectorAll('[data-ok]').forEach(b => b.onclick = async () => { await act('decide', { id: b.dataset.ok, decision: 'อนุมัติ' }); loadBoss(); });
+    app.querySelectorAll('[id^="r_"]').forEach(el => el.oninput = () => { lvReason[el.id.slice(2)] = el.value; });
+    app.querySelectorAll('[data-no]').forEach(b => b.onclick = () => {
+      const id = b.dataset.no, x = r.items.filter(i => i.id === id)[0], reason = val('r_' + id).trim();
+      if (x && x.name === S.me.name && !reason) return toast('⚠️ ใบลาของตัวเองต้องใส่เหตุผลก่อน', 'bad');
+      twoTap('no' + id, async () => { await act('decide', { id, decision: 'ปฏิเสธ', reason }); loadBoss(); });
+    });
+    app.querySelectorAll('[data-units]').forEach(b => b.onclick = async () => { await act('adjustUnits', { id: b.dataset.units, units: val('u_' + b.dataset.units) }); loadBoss(); });
+  }
+  if (bossTab === 'pay') {
+    app.querySelectorAll('[data-slip]').forEach(el => el.onclick = () => {
+      document.getElementById('slipBox').innerHTML = `<div class="card"><pre>${esc(r.items[+el.dataset.slip].slip)}</pre></div>`;
+    });
+    const pc = document.getElementById('pClose');
+    if (pc) pc.onclick = () => twoTap('closeP', async () => { await act('closePeriod'); bossCache.pay = null; loadBoss(); });
+    const pu = document.getElementById('pUndo');
+    if (pu) pu.onclick = () => twoTap('undoP', async () => { await act('undoPeriod'); bossCache.pay = null; loadBoss(); });
+  }
+  if (bossTab === 'set') {
+    app.querySelectorAll('[data-set]').forEach(b => b.onclick = async () => {
+      const i = +b.dataset.set;
+      const res = await act('setSetting', { key: r.items[i].key, value: val('set' + i) });
+      if (res && res.ok) { await refresh(); loadBoss(); }
+    });
+    app.querySelectorAll('[data-wage]').forEach(b => b.onclick = async () => {
+      const e = r.emps[+b.dataset.wage];
+      const res = await act('setWage', { name: e.name, wage: val('w' + b.dataset.wage), reason: e.name === S.me.name ? 'เจ้าของตั้งค่าแรงตัวเอง' : '' });
+      if (res && res.ok) loadBoss();
+    });
+    app.querySelectorAll('[data-role]').forEach(b => b.onclick = async () => {
+      const e = r.emps[+b.dataset.role];
+      const res = await act('setRole', { name: e.name, manager: !e.manager });
+      if (res && res.ok) { await refresh(); loadBoss(); }
+    });
+    const sc = document.getElementById('setCode');
+    if (sc) sc.onclick = async () => { const res = await act('setCode', { code: val('newCode') }); if (res && res.ok) loadBoss(); };
+  }
+}
+</script>
+</body>
+</html>
