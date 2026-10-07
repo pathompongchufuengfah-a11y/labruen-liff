@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ลงเวลา</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --bg: #f4f1ea; --card: #ffffff; --ink: #1f1d1a; --muted: #6b665d; --line: #e4ded2;
+    --brand: #b5471b; --brand-ink: #fff; --ok: #1e7a46; --ok-bg: #e6f4ec;
+    --warn: #8a5a00; --warn-bg: #fff3cd; --bad: #b42318; --bad-bg: #fde8e7; --night: #22304a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 18px/1.5 -apple-system, "Sukhumvit Set", "Noto Sans Thai", "Leelawadee UI", sans-serif; }
+  body { padding: 0 0 calc(84px + env(safe-area-inset-bottom)); }
+  header { background: var(--brand); color: var(--brand-ink); padding: 14px 16px 12px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .sub { opacity: .9; font-size: 15px; }
+  main { padding: 12px 12px 0; max-width: 560px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 6px; font-size: 18px; }
+  .muted { color: var(--muted); font-size: 15px; }
+  .big { font-size: 22px; font-weight: 700; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-color: #f0d98a; }
+  .ok { background: var(--ok-bg); color: var(--ok); border-color: #b9e0c8; }
+  .bad { background: var(--bad-bg); color: var(--bad); border-color: #f5c2bd; }
+  .night { background: var(--night); color: #fff; border-color: var(--night); }
+  button { font: inherit; border: 0; border-radius: 14px; cursor: pointer; touch-action: manipulation; }
+  .btn { display: block; width: 100%; min-height: 72px; padding: 12px 16px; background: var(--brand); color: var(--brand-ink);
+    font-size: 22px; font-weight: 700; line-height: 1.25; }
+  .btn small { display: block; font-size: 17px; font-weight: 500; opacity: .95; margin-top: 2px; }
+  .btn.green { background: var(--ok); } .btn.dark { background: var(--night); } .btn.orange { background: #c76a00; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--line); min-height: 56px; font-size: 18px; }
+  .btn.confirm { outline: 4px solid #ffd54a; }
+  .btn[disabled] { opacity: .5; }
+  .hint { text-align: center; font-size: 18px; font-weight: 600; color: var(--ok); margin: 10px 0 0; }
+  .small-btn { min-height: 44px; padding: 8px 14px; background: var(--brand); color: #fff; font-size: 16px; }
+  .small-btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--line); }
+  .small-btn.green { background: var(--ok); } .small-btn.red { background: var(--bad); }
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: #fff; border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  nav.tabs button { flex: 1; background: none; padding: 10px 0 12px; font-size: 15px; color: var(--muted); border-radius: 0; min-height: 64px; }
+  nav.tabs button b { display: block; font-size: 22px; }
+  nav.tabs button.on { color: var(--brand); font-weight: 700; }
+  .seg { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .seg button { flex: 1; min-height: 48px; background: #fff; border: 2px solid var(--line); color: var(--ink); font-size: 16px; padding: 6px; }
+  .seg button.on { border-color: var(--brand); background: #fbeee8; color: var(--brand); font-weight: 700; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal button { min-height: 60px; background: #fff; border: 2px solid var(--line); color: var(--ink); padding: 4px 0; font-size: 14px; line-height: 1.2; }
+  .cal button b { display: block; font-size: 20px; }
+  .cal button.on { border-color: var(--brand); background: var(--brand); color: #fff; }
+  .cal button[disabled] { background: #eee; color: #aaa; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 14px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  input, select { font: inherit; font-size: 18px; padding: 10px; border: 2px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); min-height: 48px; max-width: 100%; }
+  pre { white-space: pre-wrap; word-break: break-word; font: inherit; font-size: 16px; margin: 0; }
+  #toast { position: fixed; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 9; max-width: 536px; margin: 0 auto;
+    display: none; padding: 12px 14px; border-radius: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+  #toast pre { font-size: 16px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 14px; background: #eee; }
+  .pill.ok { background: var(--ok-bg); } .pill.warn { background: var(--warn-bg); } .pill.bad { background: var(--bad-bg); }
+  .center { text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">📍 ลงเวลา</h1>
+  <div class="sub" id="who">กำลังเปิด…</div>
+</header>
+<main id="app"><div class="card center muted">กำลังโหลด…</div></main>
+<nav class="tabs" id="tabs" hidden></nav>
+<div id="toast"></div>
+
+<script>
+'use strict';
+// ★ ถ้าวางไฟล์นี้บนเว็บอื่น (เช่น GitHub Pages) ให้แทนค่าสองบรรทัดนี้ — ถ้าเปิดผ่าน URL ของ Apps Script ระบบเติมให้เอง
+const LIFF_ID = '__LIFF_ID__';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwOuJzVW_i2wAHRSfcbeeYt1NaETqyb-JFHoJ18PaJrbWuv7lSLRfQZ5UzhB41GFSh4RQ/exec';
+
+const ST_WORK = 'มาทำงาน';
+const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
+let skew = 0;            // เวลาเซิร์ฟเวอร์ − เวลาเครื่อง
+let tab = 'time', bossTab = 'today';
+let busy = {};           // ปุ่มที่กำลังบันทึก (ไม่ล็อกหน้าจอ แค่กันกดซ้ำปุ่มเดิม)
+let armed = '';          // ปุ่มที่รอแตะยืนยันครั้งที่สอง
+let armTimer = null;
+let leaveType = 'ลากิจ', leaveDate = '';
+let bossCache = {};
+let idToken = '';
+
+// ---------- เริ่มต้น ----------
+boot();
+async function boot() {
+  if (LIFF_ID.indexOf('__') === 0 || API_URL.indexOf('__') === 0) {
+    return fatal('ยังไม่ได้ตั้งค่า LIFF_ID / API_URL ในไฟล์ index.html (ดู README ขั้นที่ 5)');
+  }
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    idToken = liff.getIDToken();
+    if (!idToken) return fatal('ไม่ได้รับ ID token — ต้องเปิด scope "openid" ในหน้า LIFF ของ LINE Developers');
+  } catch (e) {
+    return fatal('เปิด LIFF ไม่สำเร็จ: ' + e.message);
+  }
+  await refresh(true);
+  setInterval(() => { if (tab === 'time') renderTime(); }, 15000);                  // ป้ายเงินบนปุ่มเดินตามเวลาจริง
+  setInterval(() => { if (!document.hidden && !anyBusy()) refresh(); }, 60000);     // ข้อมูลสดทุก 60 วินาที
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !anyBusy()) refresh(); });
+}
+
+function fatal(msg) {
+  document.getElementById('app').innerHTML = `<div class="card bad">${esc(msg)}</div>`;
+  document.getElementById('who').textContent = '';
+}
+
+// ---------- คุยกับเซิร์ฟเวอร์ ----------
+async function api(action, extra) {
+  const body = JSON.stringify(Object.assign({ action, idToken }, extra || {}));
+  const res = await fetch(API_URL + '?api=1', { method: 'POST', body });   // text/plain → ไม่ต้อง preflight
+  const j = await res.json();
+  if (j && j.auth) {
+    if (!sessionStorage.getItem('reauth')) { sessionStorage.setItem('reauth', '1'); location.reload(); }
+    throw new Error(j.error || 'ยืนยันตัวตนไม่ผ่าน');
+  }
+  sessionStorage.removeItem('reauth');
+  return j;
+}
+
+async function refresh(first) {
+  try {
+    const j = await api('state');
+    if (!j.ok) throw new Error(j.error || 'โหลดไม่สำเร็จ');
+    setState(j);
+  } catch (e) {
+    if (first) fatal('โหลดข้อมูลไม่สำเร็จ: ' + e.message + '\nลองปิดแล้วเปิดใหม่');
+    else toast('⚠️ เน็ตไม่เสถียร — ตัวเลขอาจยังไม่อัปเดต', 'warn');
+  }
+}
+
+function setState(j) {
+  S = j;
+  skew = j.now - Date.now();
+  render();
+}
+
+/**
+ * ทำงาน 1 ปุ่ม: เปลี่ยนหน้าจอก่อน แล้วบันทึกเบื้องหลัง
+ * rid = รหัสการกดครั้งนี้ · ส่งซ้ำ (เน็ตหลุด/กดใหม่) ใช้ rid เดิม → เซิร์ฟเวอร์บันทึกครั้งเดียว
+ */
+async function act(action, extra, optimistic) {
+  if (busy[action]) return null;
+  const rid = pendingRid(action);
+  busy[action] = true;
+  const before = S ? JSON.parse(JSON.stringify(S)) : null;
+  if (optimistic && S) { optimistic(S); render(); }
+  let res = null, lastErr = null;
+  for (let i = 0; i < 3 && !res; i++) {
+    try { res = await api(action, Object.assign({ rid }, extra || {})); }
+    catch (e) { lastErr = e; await sleep(1000 * (i + 1) * (i + 1)); }
+  }
+  busy[action] = false;
+  if (!res) {
+    if (before) S = before;
+    render();
+    toast('📶 เน็ตหลุด บันทึกไม่สำเร็จ\nกดปุ่มเดิมอีกครั้งได้เลย ระบบจะไม่บันทึกซ้ำ\n(' + (lastErr ? lastErr.message : '') + ')', 'bad', 9000);
+    return null;
+  }
+  clearPending(action);
+  if (res.state && res.state.ok) setState(res.state); else render();
+  if (res.text) toast(res.text, res.ok ? 'ok' : 'bad', res.ok ? 6000 : 9000);
+  else if (res.error) toast(res.error, 'bad', 9000);
+  return res;
+}
+
+function pendingRid(action) {
+  const k = 'rid:' + action;
+  try {
+    const p = JSON.parse(localStorage.getItem(k) || 'null');
+    if (p && Date.now() - p.at < 10 * 60000) return p.rid;
+  } catch (e) {}
+  const rid = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/[^\w-]/g, '');
+  try { localStorage.setItem(k, JSON.stringify({ rid, at: Date.now() })); } catch (e) {}
+  return rid;
+}
+function clearPending(action) { try { localStorage.removeItem('rid:' + action); } catch (e) {} }
+function anyBusy() { return Object.keys(busy).some(k => busy[k]); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ---------- ตัวช่วย ----------
+function esc(s) {
+  return String(s === undefined || s === null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function nowMs() { return Date.now() + skew; }
+function hhmm(ms) {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ms));
+}
+function baht(n) { return Number(n || 0).toLocaleString('th-TH'); }
+
+/** สูตรเดียวกับเซิร์ฟเวอร์ (otRounds) — ใช้แสดงผลเท่านั้น ตัวเลขจริงคิดที่เซิร์ฟเวอร์ตอนกด */
+function otView(t) {
+  const o = S.ot, over = Math.floor((t - o.std) / 60000);
+  const rounds = over < o.first ? 0 : 1 + Math.floor((over - o.first) / o.step);
+  const nextAt = o.std + (rounds === 0 ? o.first : o.first + rounds * o.step) * 60000;
+  return { over, rounds, money: rounds * o.rate, beforeStd: t < o.std,
+           waitMin: Math.ceil((nextAt - t) / 60000), warn: over >= o.first && S.staying.length > o.keep };
+}
+
+function toast(text, kind, ms) {
+  const el = document.getElementById('toast');
+  el.className = 'card ' + (kind || '');
+  el.innerHTML = `<pre>${esc(text)}</pre>`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, ms || 6000);
+  el.onclick = () => { el.style.display = 'none'; };
+}
+
+/** ปุ่มอันตราย: แตะครั้งแรก = ขอยืนยัน · แตะครั้งที่สองภายใน 6 วินาที = ทำจริง (ห้ามใช้ confirm()) */
+function twoTap(id, fn) {
+  if (armed === id) { armed = ''; clearTimeout(armTimer); fn(); return; }
+  armed = id;
+  clearTimeout(armTimer);
+  armTimer = setTimeout(() => { armed = ''; render(); }, 6000);
+  render();
+}
+
+// ---------- วาดหน้าจอ ----------
+function render() {
+  if (!S) return;
+  document.getElementById('title').textContent = '📍 ลงเวลา · ' + (S.shop || '');
+  if (!S.registered) { document.getElementById('who').textContent = 'ยังไม่ได้ลงทะเบียน'; return renderRegister(); }
+  document.getElementById('who').textContent = `${S.me.name} · ${S.me.dept} · กะ${S.day.label}`;
+  const tabs = [['time', '🕐', 'ลงเวลา'], ['leave', '📝', 'ขอลา'], ['my', '📊', 'ของฉัน']];
+  if (S.me.boss) tabs.push(['boss', '👑', 'ผู้จัดการ']);
+  const nav = document.getElementById('tabs');
+  nav.hidden = false;
+  nav.innerHTML = tabs.map(t => `<button class="${tab === t[0] ? 'on' : ''}" data-tab="${t[0]}"><b>${t[1]}</b>${t[2]}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.tab; armed = ''; render(); if (tab === 'my') loadMy(); if (tab === 'boss') loadBoss(); });
+  if (tab === 'time') renderTime();
+  else if (tab === 'leave') renderLeave();
+  else if (tab === 'my') renderMy();
+  else if (tab === 'boss') renderBoss();
+}
+
+function renderRegister() {
+  document.getElementById('tabs').hidden = true;
+  document.getElementById('app').innerHTML = `
+    <div class="card"><h2>ลงทะเบียนครั้งแรก</h2>
+      <p class="muted">ใส่ชื่อเล่น (คำเดียว)${S.needCode ? ' และรหัสร้านที่ได้จากเจ้าของ' : ''}</p>
+      <p><input id="rgName" placeholder="ชื่อเล่น" autocomplete="off" style="width:100%"></p>
+      ${S.needCode ? '<p><input id="rgCode" placeholder="รหัสร้าน" inputmode="numeric" autocomplete="off" style="width:100%"></p>' : ''}
+      <button class="btn" id="rgGo">ลงทะเบียน</button>
+    </div>`;
+  document.getElementById('rgGo').onclick = () => {
+    const name = document.getElementById('rgName').value.trim();
+    const codeEl = document.getElementById('rgCode');
+    if (!name) return toast('ใส่ชื่อเล่นก่อน', 'bad');
+    act('register', { name, code: codeEl ? codeEl.value.trim() : '' });
+  };
+}
+
+function renderTime() {
+  if (!S || !S.registered || tab !== 'time') return;
+  const app = document.getElementById('app');
+  const t = nowMs(), d = S.today, ot = S.ot;
+  const checkedIn = d && d.status === ST_WORK && d.in;
+  const out = checkedIn && (d.out || d.early);
+  let html = '';
+
+  // --- สถานะของฉัน ---
+  if (busy.checkin) html += card('📡 กำลังเช็คอิน… หาตำแหน่งและบันทึกอยู่', '');
+  else if (S.day.closedDay) html += card('🏖️ วันนี้ร้านหยุด', '');
+  else if (d && d.status && d.status !== ST_WORK) html += card(`⛔ วันนี้บันทึกว่า "${esc(d.status)}"`, 'bad', 'ถ้าผิดให้แจ้งเจ้าของร้าน');
+  else if (!checkedIn) html += card('ยังไม่ได้เข้างาน', '', S.day.works ? '' : 'วันนี้ไม่ใช่วันทำงานของคุณ');
+  else if (!out) html += card(`✅ เข้างานแล้ว ${esc(d.in)}`, 'ok', 'ยังไม่ลงเวลาออก');
+  else if (d.early) html += card(`📌 กลับก่อน ${esc(d.early)}`, '', 'ไม่หักค่าแรง · คืนนี้ไม่ได้ OT');
+  else html += card(`👋 ออกแล้ว ${esc(d.out)}` + (busy.checkout ? ' · กำลังบันทึก…' : ''), 'ok',
+    `เข้า ${esc(d.in)}` + (S.perPerson && S.me.ot && !busy.checkout ? ` · OT ${d.rounds} รอบ · ${baht(d.rounds * ot.rate)} บาท` : ''));
+
+  // --- ตอนนี้ / ใครยังอยู่ ---
+  const v = otView(t);
+  if (checkedIn || t >= ot.std) {
+    let body = '';
+    if (S.closed) body += `<div class="big">🌙 ปิดร้านแล้ว ${esc(S.closed.hm)}</div><div class="muted">บันทึกโดย ${esc(S.closed.by)}</div>`;
+    else {
+      body += `<div class="big">🕐 ตอนนี้ ${hhmm(t)}</div>`;
+      body += `<div>ยังอยู่ ${S.staying.length} คน${S.staying.length ? ': ' + S.staying.map(esc).join(' ') : ''}</div>`;
+      if (S.stayingOther.length) body += `<div class="muted">ครัว: ${S.stayingOther.map(esc).join(' ')}</div>`;
+      if (S.perPerson && v.warn) {
+        body += `<div class="card warn" style="margin:10px 0 0">⚠️ ตอนนี้อยู่ ${S.staying.length} คน · ร้านตั้งไว้ว่าหลังรอบแรกให้เหลือ ${ot.keep} คน<br>ตกลงกันเองว่าใครอยู่ต่อ</div>`;
+      }
+    }
+    html += `<div class="card">${body}</div>`;
+  }
+
+  // --- ปุ่มหลัก ---
+  if (!S.day.closedDay && !(d && d.status && d.status !== ST_WORK)) {
+    if (!checkedIn && !busy.checkin) {
+      html += `<button class="btn green" id="bIn">เช็คอิน<small>ใช้ GPS ของมือถือ · ต้องอยู่ที่ร้าน</small></button>`;
+    } else if (checkedIn && !out) {
+      let label = 'เลิกงาน', sub = 'บันทึกเวลาออก', cls = 'btn';
+      if (S.perPerson && S.me.ot) {
+        if (v.beforeStd) { sub = `ยังไม่ถึง ${ot.stdHm} · นับเป็นกลับก่อน ไม่ได้ OT`; cls = 'btn orange'; }
+        else if (v.rounds === 0) sub = 'ยังไม่ถึงรอบ OT';
+        else sub = `ได้ OT ${v.rounds} รอบ · ${baht(v.money)} บาท`;
+      }
+      if (armed === 'out') { label = 'แตะอีกครั้งเพื่อยืนยัน'; cls += ' confirm'; }
+      html += `<button class="${cls}" id="bOut">${label}<small>${esc(sub)}</small></button>`;
+      if (S.perPerson && S.me.ot && !S.closed) {
+        const next = v.rounds === 0 ? 'ได้ OT ' + baht(ot.rate) + ' บ.' : 'ได้เพิ่ม ' + baht(ot.rate) + ' บ.';
+        html += `<p class="hint">รออีก ${v.waitMin} นาที ${next}</p>`;
+      }
+    }
+  }
+
+  // --- ปิดร้าน (เลยเวลาปิดมาตรฐาน) ---
+  if (t >= ot.std && !S.closed && !S.day.closedDay) {
+    const cls = 'btn dark' + (armed === 'close' ? ' confirm' : '');
+    const lbl = busy.close ? '🌙 กำลังปิดร้าน…' : armed === 'close' ? `แตะอีกครั้ง = ปิดร้าน ${hhmm(t)}` : '🌙 ปิดร้าน';
+    html += `<div style="height:14px"></div><button class="${cls}" id="bClose" ${busy.close ? 'disabled' : ''}>${lbl}<small>คนสุดท้ายกด · ใครยังไม่กดเลิกงาน ระบบลงเวลาออกให้</small></button>`;
+  }
+  app.innerHTML = html;
+
+  const bIn = document.getElementById('bIn');
+  if (bIn) bIn.onclick = checkIn;
+  const bOut = document.getElementById('bOut');
+  if (bOut) bOut.onclick = () => twoTap('out', () => {
+    const at = hhmm(nowMs());
+    act('checkout', {}, s => { s.today.out = at; s.staying = s.staying.filter(n => n !== s.me.name); });
+  });
+  const bClose = document.getElementById('bClose');
+  if (bClose) bClose.onclick = () => twoTap('close', doClose);
+}
+
+function card(title, cls, sub) {
+  return `<div class="card ${cls || ''}"><div class="big">${title}</div>${sub ? `<div class="muted">${sub}</div>` : ''}</div>`;
+}
+
+async function doClose(time) {
+  const at = time || hhmm(nowMs());
+  const res = await act('close', time ? { time } : {}, s => { s.closed = { hm: at, by: s.me.name }; });
+  if (res && res.ok && res.share) shareToChat(res.share);
+}
+
+/** ส่งสรุปปิดร้านเข้ากลุ่มด้วย liff.sendMessages (ฟรี ไม่ใช่ push) — เฉพาะตอนเปิดจากกลุ่ม */
+function shareToChat(text) {
+  try {
+    const ctx = liff.getContext();
+    if (!ctx || (ctx.type !== 'group' && ctx.type !== 'room')) return;
+    if (!liff.isApiAvailable('sendMessages')) return;
+    liff.sendMessages([{ type: 'text', text: text.slice(0, 4900) }]).catch(() => {});
+  } catch (e) {}
+}
+
+// ---------- เช็คอิน GPS ----------
+async function checkIn() {
+  if (busy.checkin) return;
+  busy.checkin = true; render();
+  let pos;
+  try { pos = await getBestPosition(); }
+  catch (e) { busy.checkin = false; render(); return toast('❌ ' + e.message, 'bad', 9000); }
+  busy.checkin = false;
+  const c = pos.coords;
+  act('checkin', { lat: c.latitude, lng: c.longitude, acc: Math.round(c.accuracy) },
+      s => { s.today = { status: ST_WORK, in: hhmm(nowMs()), out: '', early: '', rounds: 0 }; });
+}
+
+/** เก็บตำแหน่งหลายครั้งภายใน ~10 วินาที เลือกค่าที่แม่นที่สุด (GPS ครั้งแรกมักคลาดเยอะ) */
+function getBestPosition(maxMs, goodAcc) {
+  maxMs = maxMs || 10000; goodAcc = goodAcc || 25;
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('เครื่องนี้ใช้ GPS ไม่ได้ — ใช้วิธีแชร์ตำแหน่งในแชทแทน'));
+    let best = null, done = false, id = null;
+    const finish = err => {
+      if (done) return; done = true;
+      if (id !== null) navigator.geolocation.clearWatch(id);
+      clearTimeout(timer);
+      if (best) resolve(best);
+      else reject(err || new Error('หาตำแหน่งไม่เจอ ลองออกไปที่โล่งแล้วกดใหม่'));
+    };
+    const timer = setTimeout(() => finish(), maxMs);
+    id = navigator.geolocation.watchPosition(p => {
+      if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+      if (p.coords.accuracy <= goodAcc) finish();
+    }, err => {
+      if (err.code === 1) finish(new Error('ยังไม่อนุญาตให้ LINE ใช้ตำแหน่ง — เปิดสิทธิ์ตำแหน่งในการตั้งค่ามือถือ แล้วกดใหม่'));
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: maxMs });
+  });
+}
+
+// ---------- ขอลา ----------
+function renderLeave() {
+  const app = document.getElementById('app');
+  const base = S.day.key.split('-').map(Number);
+  const t0 = Date.UTC(base[0], base[1] - 1, base[2]);
+  const off = S.day.closedDays || [];
+  const wk = S.me.workDays;
+  let cal = '';
+  const firstDow = new Date(t0).getUTCDay();
+  for (let i = 0; i < firstDow; i++) cal += '<span></span>';
+  for (let i = 0; i < 28; i++) {
+    const d = new Date(t0 + i * 86400000);
+    const key = d.toISOString().slice(0, 10), dow = d.getUTCDay();
+    const shut = off.indexOf(dow) >= 0 || (wk && wk.indexOf(dow) < 0) || (leaveType === 'ขอเข้าสาย' && i === 0);
+    cal += `<button data-k="${key}" class="${leaveDate === key ? 'on' : ''}" ${shut ? 'disabled' : ''}>${DOW[dow]}<b>${d.getUTCDate()}</b>${MON[d.getUTCMonth()]}</button>`;
+  }
+  const types = ['ลากิจ', 'ลาป่วย', 'ขอเข้าสาย'];
+  const mine = (S.myLeaves || []).map(l => `<tr><td>${esc(l.date.slice(8))}/${+l.date.slice(5, 7)}</td><td>${esc(l.type)}</td>
+      <td><span class="pill ${l.status === 'อนุมัติ' ? 'ok' : l.status === 'ปฏิเสธ' ? 'bad' : 'warn'}">${esc(l.status)}</span></td>
+      <td>${l.status === 'รออนุมัติ' ? `<button class="small-btn ghost" data-cancel="${esc(l.id)}">ยกเลิก</button>` : ''}</td></tr>`).join('');
+  app.innerHTML = `
+    <div class="card"><h2>1. ประเภท</h2>
+      <div class="seg">${types.map(x => `<button data-t="${x}" class="${leaveType === x ? 'on' : ''}">${x}</button>`).join('')}</div>
+      <div class="muted">${leaveType === 'ขอเข้าสาย' ? 'ต้องขอล่วงหน้าอย่างน้อย 1 วัน' : 'แจ้งวันเดียวกัน = นับเป็นกะทันหัน'}</div>
+    </div>
+    <div class="card"><h2>2. เลือกวัน</h2><div class="cal">${cal}</div></div>
+    <button class="btn" id="lvGo" ${leaveDate && !busy.leave ? '' : 'disabled'}>${busy.leave ? 'กำลังส่ง…' : 'ส่งคำขอ' + (leaveDate ? `<small>${leaveType} · ${+leaveDate.slice(8)} ${MON[+leaveDate.slice(5, 7) - 1]}</small>` : '')}</button>
+    <div style="height:12px"></div>
+    <div class="card"><h2>ใบลาของฉัน</h2>${mine ? `<table>${mine}</table>` : '<div class="muted">ยังไม่มี</div>'}</div>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { leaveType = b.dataset.t; leaveDate = ''; render(); });
+  app.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { leaveDate = b.dataset.k; render(); });
+  app.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => twoTap('cancel' + b.dataset.cancel, () => act('cancelLeave', { id: b.dataset.cancel })));
+  app.querySelectorAll('[data-cancel]').forEach(b => { if (armed === 'cancel' + b.dataset.cancel) b.textContent = 'แตะอีกครั้ง'; });
+  document.getElementById('lvGo').onclick = async () => {
+    const r = await act('leave', { type: leaveType, date: leaveDate });
+    if (r && r.ok) leaveDate = '';
+    render();
+  };
+}
+
+// ---------- ของฉัน ----------
+let myText = '';
+async function loadMy() {
+  try { const r = await api('my'); myText = r.ok ? r.text : (r.error || ''); }
+  catch (e) { myText = '📶 โหลดไม่สำเร็จ ลองใหม่'; }
+  if (tab === 'my') renderMy();
+}
+function renderMy() {
+  document.getElementById('app').innerHTML = `<div class="card"><pre>${esc(myText || 'กำลังโหลด…')}</pre></div>
+    <button class="btn ghost" id="myR">โหลดใหม่</button>`;
+  document.getElementById('myR').onclick = () => { myText = ''; renderMy(); loadMy(); };
+}
+
+// ---------- ผู้จัดการ ----------
+let bossDate = '';
+async function loadBoss() {
+  const k = bossTab;
+  try {
+    let r;
+    if (k === 'today') r = await api('bossToday', { date: bossDate });
+    else if (k === 'leaves') r = await api('bossLeaves');
+    else if (k === 'pay') r = await api('bossPay');
+    else r = await api('settings');
+    bossCache[k] = r;
+  } catch (e) { bossCache[k] = { ok: false, error: '📶 โหลดไม่สำเร็จ' }; }
+  if (tab === 'boss' && bossTab === k) renderBoss();
+}
+
+function renderBoss() {
+  const subs = [['today', 'วันนี้'], ['leaves', 'ใบลา'], ['pay', 'จ่ายเงิน'], ['set', 'ตั้งค่า']];
+  const r = bossCache[bossTab];
+  let body = '';
+  if (!r) body = '<div class="card muted">กำลังโหลด…</div>';
+  else if (!r.ok) body = `<div class="card bad">${esc(r.error || 'ผิดพลาด')}</div>`;
+  else if (bossTab === 'today') body = bossTodayHtml(r);
+  else if (bossTab === 'leaves') body = bossLeavesHtml(r);
+  else if (bossTab === 'pay') body = bossPayHtml(r);
+  else body = bossSetHtml(r);
+  const app = document.getElementById('app');
+  app.innerHTML = `<div class="seg">${subs.map(s => `<button data-s="${s[0]}" class="${bossTab === s[0] ? 'on' : ''}">${s[1]}</button>`).join('')}</div>` + body;
+  app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { bossTab = b.dataset.s; renderBoss(); loadBoss(); });
+  wireBoss(app);
+}
+
+function bossTodayHtml(r) {
+  const rows = r.rows.map(x => `<tr><td>${esc(x.name)}${x.ot ? '' : ' <span class="pill">ครัว</span>'}${x.status !== ST_WORK ? ` <span class="pill bad">${esc(x.status)}</span>` : ''}</td>
+    <td>${esc(x.in)}</td><td>${esc(x.out)}${x.early ? ' <span class="pill warn">กลับก่อน</span>' : ''}</td>
+    <td class="num">${x.ot ? x.rounds : '–'}</td><td class="num">${x.ot ? baht(x.money) : '–'}</td></tr>`).join('');
+  const names = r.rows.filter(x => x.status === ST_WORK).map(x => `<option>${esc(x.name)}</option>`).join('');
+  return `
+    <div class="card"><div class="row"><input type="date" id="bdDate" value="${esc(r.key)}"><span class="muted">${esc(r.label)}</span></div>
+      <div style="margin-top:6px">${r.closed ? `🌙 ปิดร้าน ${esc(r.closed.hm)} โดย ${esc(r.closed.by)}` : '<span class="muted">ยังไม่บันทึกปิดร้าน</span>'}
+      ${r.locked ? ' · <span class="pill bad">งวดปิดแล้ว แก้ไม่ได้</span>' : ''}</div></div>
+    <div class="card"><h2>OT คืนนี้ · รวม ${baht(r.totalOt)} บาท</h2>
+      ${rows ? `<table><tr><th>ชื่อ</th><th>เข้า</th><th>ออก</th><th class="num">รอบ</th><th class="num">บาท</th></tr>${rows}</table>` : '<div class="muted">ยังไม่มีใครลงเวลา</div>'}</div>
+    ${r.locked || !names ? '' : `
+    <div class="card"><h2>แก้เวลาออกย้อนหลัง</h2><div class="muted">คิด OT ใหม่ให้อัตโนมัติ</div>
+      <div class="row" style="margin-top:8px"><select id="edName">${names}</select><input type="time" id="edTime" value="02:00">
+      <button class="small-btn" id="edGo">บันทึก</button></div></div>
+    <div class="card"><h2>${r.closed ? 'แก้เวลาปิดร้าน' : 'บันทึกปิดร้าน'}</h2>
+      <div class="muted">คิด OT ใหม่ให้เฉพาะคนที่ไม่ได้กดเลิกงานเอง (ใช้ได้กับกะล่าสุด)</div>
+      <div class="row" style="margin-top:8px"><input type="time" id="rcTime" value="${esc(r.closed ? r.closed.hm : '02:00')}">
+      <button class="small-btn" id="rcGo">${armed === 'reclose' ? 'แตะอีกครั้ง' : 'บันทึก'}</button></div></div>`}`;
+}
+
+function bossLeavesHtml(r) {
+  if (!r.items.length) return '<div class="card muted">ไม่มีคำขอที่รออนุมัติ</div>';
+  return r.items.map(x => `<div class="card"><div class="big">${esc(x.name)} · ${esc(x.type)}</div>
+    <div class="muted">${esc(x.id)} · ${esc(x.date)} · ${esc(x.mode)} · หัก ${x.units} แรง</div>
+    <div class="row" style="margin-top:8px"><button class="small-btn green" data-ok="${esc(x.id)}">อนุมัติ</button>
+    <button class="small-btn red" data-no="${esc(x.id)}">${armed === 'no' + x.id ? 'แตะอีกครั้ง' : 'ปฏิเสธ'}</button></div></div>`).join('');
+}
+
+function bossPayHtml(r) {
+  const rows = r.items.map((x, i) => `<tr data-slip="${i}"><td>${esc(x.name)}</td><td class="num">${x.work}</td><td class="num">${x.otR}</td>
+    <td class="num">${baht(x.otPay)}</td><td class="num"><b>${baht(x.net)}</b></td></tr>`).join('');
+  return `<div class="card"><h2>งวด ${esc(r.code)} (ถึงตอนนี้)</h2><div class="muted">${esc(r.start)} ถึง ${esc(r.end)} · แตะชื่อเพื่อดูสลิป</div>
+    ${rows ? `<table><tr><th>ชื่อ</th><th class="num">วัน</th><th class="num">OT</th><th class="num">OT บ.</th><th class="num">สุทธิ</th></tr>${rows}</table>` : '<div class="muted">ยังไม่มีข้อมูล</div>'}
+    <div class="big" style="margin-top:8px">รวม ${baht(r.total)} บาท</div></div>
+    <div id="slipBox"></div>
+    <div class="card muted">ปิดงวด: พิมพ์ <b>ปิดงวด</b> ในแชทส่วนตัวกับบอท (มีพรีวิวก่อนยืนยัน)</div>`;
+}
+
+function bossSetHtml(r) {
+  return r.items.map((x, i) => `<div class="card"><div><b>${esc(x.key)}</b></div><div class="muted">${esc(x.hint)}</div>
+    <div class="row" style="margin-top:6px"><input id="set${i}" value="${esc(x.value)}" style="flex:1">
+    <button class="small-btn" data-set="${i}">บันทึก</button></div></div>`).join('');
+}
+
+function wireBoss(app) {
+  const r = bossCache[bossTab];
+  if (!r || !r.ok) return;
+  if (bossTab === 'today') {
+    const dt = document.getElementById('bdDate');
+    if (dt) dt.onchange = () => { bossDate = dt.value; bossCache.today = null; renderBoss(); loadBoss(); };
+    const ed = document.getElementById('edGo');
+    if (ed) ed.onclick = async () => {
+      const res = await act('editOut', { name: document.getElementById('edName').value, time: document.getElementById('edTime').value, date: r.key });
+      if (res) loadBoss();
+    };
+    const rc = document.getElementById('rcGo');
+    if (rc) rc.onclick = () => twoTap('reclose', async () => { await doClose(document.getElementById('rcTime').value); loadBoss(); });
+  }
+  if (bossTab === 'leaves') {
+    app.querySelectorAll('[data-ok]').forEach(b => b.onclick = async () => { await act('decide', { id: b.dataset.ok, decision: 'อนุมัติ' }); loadBoss(); });
+    app.querySelectorAll('[data-no]').forEach(b => b.onclick = () => twoTap('no' + b.dataset.no, async () => { await act('decide', { id: b.dataset.no, decision: 'ปฏิเสธ' }); loadBoss(); }));
+  }
+  if (bossTab === 'pay') {
+    app.querySelectorAll('[data-slip]').forEach(tr => tr.onclick = () => {
+      document.getElementById('slipBox').innerHTML = `<div class="card"><pre>${esc(r.items[+tr.dataset.slip].slip)}</pre></div>`;
+    });
+  }
+  if (bossTab === 'set') {
+    app.querySelectorAll('[data-set]').forEach(b => b.onclick = async () => {
+      const i = +b.dataset.set;
+      const res = await act('setSetting', { key: r.items[i].key, value: document.getElementById('set' + i).value });
+      if (res && res.ok) { await refresh(); loadBoss(); }
+    });
+  }
+}
+</script>
+</body>
+</html>
